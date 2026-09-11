@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>جدول حصص الرياضيات | الصفوف 5–12</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="teacherBar" class="teacher-bar hidden">
+    <div class="container">
+      <span>وضع المعلم مفعّل — يمكنك إضافة الحصص الأسبوعية أو حذفها</span>
+      <button class="btn btn-outline" id="btnLogout" type="button">تسجيل الخروج</button>
+    </div>
+  </div>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand" id="brand">
+        <div class="logo-fallback">م</div>
+        <div>
+          <h1>حصص الرياضيات</h1>
+          <small>الجدول الأسبوعي للصفوف 5–12</small>
+        </div>
+      </div>
+      <nav class="nav-actions">
+        <span class="status-pill" id="fbStatus"><i></i> جاري التحقق</span>
+        <button class="btn btn-gold" id="btnTeacher" type="button">دخول المعلم</button>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="container hero-content">
+        <span class="eyebrow">جدول الحصص فقط</span>
+        <h2>حصص الرياضيات الأسبوعية من الخامس حتى الثاني عشر</h2>
+        <p>الطالب يدخل برمز يعطيه المعلم. بدون الرمز لا تظهر الحصص.</p>
+        <div class="student-gate" id="studentGate">
+          <label for="studentCode">رمز دخول الحصة</label>
+          <div class="gate-row">
+            <input id="studentCode" placeholder="أدخل الرمز الذي أعطاك المعلم" autocomplete="off" />
+            <button class="btn btn-gold" id="btnStudentEnter" type="button">دخول الحصص</button>
+          </div>
+          <div class="msg" id="studentMsg"></div>
+        </div>
+        <div class="hero-cta hidden" id="afterLoginCta">
+          <button class="btn btn-gold" id="exploreBtn" type="button">عرض حصصي</button>
+          <button class="btn btn-outline" id="btnStudentOut" type="button">خروج الطالب</button>
+        </div>
+      </div>
+    </section>
+    <section class="section locked-area hidden" id="gradesSection">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h3>اختر الصف</h3>
+            <p>اضغط الصف لتصفية الحصص الظاهرة في الجدول</p>
+          </div>
+        </div>
+        <div class="grades-grid" id="gradesGrid"></div>
+      </div>
+    </section>
+    <section class="section locked-area hidden" id="scheduleSection" style="padding-top:0">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <h3 id="scheduleTitle">الجدول الأسبوعي</h3>
+            <p id="scheduleSub">كل الصفوف</p>
+          </div>
+          <div class="schedule-tools">
+            <button class="btn btn-ghost" id="btnAllGrades" type="button">كل الصفوف</button>
+            <button class="btn btn-gold hidden" id="btnAddClass" type="button">+ إضافة حصة</button>
+          </div>
+        </div>
+        <div id="teacherScheduleHint" class="teacher-panel hidden" style="margin:0 0 16px">
+          <h3>رموز دخول الطلبة</h3>
+          <p style="color:var(--muted);margin-bottom:10px">ضع رمزاً لكل صف ثم أعطِه للطلبة.</p>
+          <div id="codesEditor"></div>
+          <div class="msg" id="codesMsg"></div>
+          <button class="btn btn-teal" id="saveCodes" type="button">حفظ الرموز</button>
+        </div>
+        <div class="week-grid" id="weekGrid"></div>
+        <p class="empty-note" id="weekEmpty">لا توجد حصص بعد. المعلم يضيف الحصة من الزر الذهبي.</p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div class="container">
+      <strong>حصص الرياضيات</strong>
+      <p>جدول أسبوعي فقط — بدون دروس أو تمارين</p>
+    </div>
+  </footer>
+  <div class="modal-back hidden" id="classModal">
+    <div class="modal modal-wide" role="dialog">
+      <h3>إضافة حصة أسبوعية</h3>
+      <p>الحصة تتكرر كل أسبوع حتى يحذفها المعلم.</p>
+      <div class="form-grid">
+        <div>
+          <label for="classGrade">الصف</label>
+          <select id="classGrade"></select>
+        </div>
+        <div>
+          <label for="classDay">اليوم</label>
+          <select id="classDay">
+            <option value="0">الأحد</option>
+            <option value="1">الاثنين</option>
+            <option value="2">الثلاثاء</option>
+            <option value="3">الأربعاء</option>
+            <option value="4">الخميس</option>
+            <option value="5">الجمعة</option>
+            <option value="6">السبت</option>
+          </select>
+        </div>
+        <div>
+          <label for="classStart">من الساعة</label>
+          <input id="classStart" type="time" value="08:00" />
+        </div>
+        <div>
+          <label for="classEnd">إلى الساعة</label>
+          <input id="classEnd" type="time" value="08:45" />
+        </div>
+      </div>
+      <label for="classTopic" style="margin-top:10px">موضوع الحصة</label>
+      <input id="classTopic" placeholder="مثال: الكسور المتكافئة" />
+      <label for="classPlace" style="margin-top:10px">المكان أو الرابط</label>
+      <input id="classPlace" placeholder="قاعة 12 أو رابط الحصة" />
+      <label for="classNotes" style="margin-top:10px">ملاحظة</label>
+      <textarea id="classNotes" rows="2" placeholder="اختياري"></textarea>
+      <div class="msg" id="classMsg"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button>
+        <button class="btn btn-gold" id="saveClass" type="button">حفظ الحصة</button>
+      </div>
+    </div>
+  </div>
+  <div class="modal-back hidden" id="teacherModal">
+    <div class="modal" role="dialog">
+      <h3>دخول المعلم</h3>
+      <p>الرقم السري من Firebase. للتجريب: 123456</p>
+      <label for="teacherCode">الرقم السري</label>
+      <input id="teacherCode" type="password" inputmode="numeric" autocomplete="off" />
+      <div class="msg" id="loginMsg"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost" id="closeModal" type="button">إلغاء</button>
+        <button class="btn btn-gold" id="doLogin" type="button">دخول</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
