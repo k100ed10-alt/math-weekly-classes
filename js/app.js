@@ -1,35 +1,175 @@
 (function () {
-  function qs(sel) { return document.querySelector(sel); }
-  var DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-  var DEFAULT_CODES = {"5":"حصة5","6":"حصة6","7":"حصة7","8":"حصة8","9":"حصة9","10":"حصة10","11":"حصة11","12":"حصة12"};
-  var state = {db:null,firebaseReady:false,isTeacher:sessionStorage.getItem("math_teacher")==="1",studentGrade:sessionStorage.getItem("math_student_grade")||"",filterGrade:"all",classes:[],codes:Object.assign({}, DEFAULT_CODES)};
-  function isConfigured(){var c=window.FIREBASE_CONFIG||{};return c.apiKey && String(c.apiKey).indexOf("PASTE_YOUR")===-1;}
-  function initFirebase(){var pill=qs("#fbStatus");if(!pill)return;if(!isConfigured()){pill.innerHTML="<i></i> وضع تجريبي";return;}try{firebase.initializeApp(window.FIREBASE_CONFIG);state.db=firebase.firestore();state.firebaseReady=true;pill.classList.add("live");pill.innerHTML="<i></i> متصل بـ Firebase";}catch(err){pill.innerHTML="<i></i> تعذر الاتصال";}}
-  function escapeHtml(s){return String(s||"").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/\"/g,""");}
-  function formatTime(t){if(!t)return"";var parts=String(t).split(":");var n=Number(parts[0]);var m=parts[1]||"00";var suffix=n<12?"ص":"م";var hour=((n+11)%12)+1;return hour+":"+m+" "+suffix;}
-  function canSeeSchedule(){return state.isTeacher||!!state.studentGrade;}
-  function updateAccessUI(){var open=canSeeSchedule();var gate=qs("#studentGate");var after=qs("#afterLoginCta");var grades=qs("#gradesSection");var schedule=qs("#scheduleSection");if(gate)gate.classList.toggle("hidden",open);if(state.isTeacher&&gate)gate.classList.add("hidden");if(after)after.classList.toggle("hidden",!open||state.isTeacher);if(grades)grades.classList.toggle("hidden",!open);if(schedule)schedule.classList.toggle("hidden",!open);qs("#teacherBar").classList.toggle("hidden",!state.isTeacher);qs("#btnTeacher").classList.toggle("hidden",state.isTeacher);var addBtn=qs("#btnAddClass");var hint=qs("#teacherScheduleHint");var allBtn=qs("#btnAllGrades");if(addBtn)addBtn.classList.toggle("hidden",!state.isTeacher);if(hint)hint.classList.toggle("hidden",!state.isTeacher);if(allBtn)allBtn.classList.toggle("hidden",!state.isTeacher);if(state.studentGrade&&!state.isTeacher)state.filterGrade=state.studentGrade;}
-  function loadCodes(){if(state.firebaseReady){return state.db.collection("studentCodes").get().then(function(snap){if(!snap.empty){snap.docs.forEach(function(d){if(d.data().code)state.codes[d.id]=String(d.data().code);});}renderCodesEditor();}).catch(function(){renderCodesEditor();});}try{var local=JSON.parse(localStorage.getItem("math_student_codes")||"null");if(local)state.codes=Object.assign({},DEFAULT_CODES,local);}catch(e){}renderCodesEditor();return Promise.resolve();}
-  function renderCodesEditor(){var host=qs("#codesEditor");if(!host)return;var html="";Object.keys(window.PORTAL_CONTENT).forEach(function(g){html+='<div class="code-row"><label>'+window.PORTAL_CONTENT[g].title+'</label><input data-grade="'+g+'" class="code-input" value="'+escapeHtml(state.codes[g]||"")+'" /></div>';});host.innerHTML=html;}
-  function saveCodes(){var msg=qs("#codesMsg");var next=Object.assign({},state.codes);document.querySelectorAll(".code-input").forEach(function(inp){next[inp.getAttribute("data-grade")]=inp.value.trim();});function doneOk(){state.codes=next;if(msg){msg.className="msg ok";msg.textContent="تم حفظ الرموز.";}}function doneErr(){if(msg){msg.className="msg err";msg.textContent="تعذر حفظ الرموز.";}}if(state.firebaseReady){var batch=state.db.batch();Object.keys(next).forEach(function(g){batch.set(state.db.collection("studentCodes").doc(g),{code:next[g]});});batch.commit().then(doneOk).catch(doneErr);}else{localStorage.setItem("math_student_codes",JSON.stringify(next));doneOk();}}
-  function studentEnter(){var raw=((qs("#studentCode")&&qs("#studentCode").value)||"").trim();var msg=qs("#studentMsg");if(!raw){if(msg){msg.className="msg err";msg.textContent="أدخل الرمز الذي أعطاك المعلم.";}return;}var found=null;Object.keys(state.codes).forEach(function(g){if(String(state.codes[g])===raw)found=g;});if(!found){if(msg){msg.className="msg err";msg.textContent="الرمز غير صحيح.";}return;}state.studentGrade=found;state.filterGrade=found;sessionStorage.setItem("math_student_grade",found);if(msg){msg.className="msg ok";msg.textContent="تم الدخول إلى حصص "+window.PORTAL_CONTENT[found].title;}updateAccessUI();renderHomeGrades();updateScheduleHead();renderWeekGrid();setTimeout(function(){qs("#scheduleSection").scrollIntoView({behavior:"smooth");},200);}
-  function studentOut(){sessionStorage.removeItem("math_student_grade");state.studentGrade="";state.filterGrade="all";if(qs("#studentCode"))qs("#studentCode").value="";if(qs("#studentMsg"))qs("#studentMsg").textContent="";updateAccessUI();renderHomeGrades();updateScheduleHead();renderWeekGrid();window.scrollTo({top:0,behavior:"smooth"});}
-  function renderHomeGrades(){var grid=qs("#gradesGrid");if(!grid)return;grid.innerHTML="";var grades=state.isTeacher?Object.keys(window.PORTAL_CONTENT):(state.studentGrade?[state.studentGrade]:[]);grades.forEach(function(g){var data=window.PORTAL_CONTENT[g];var card=document.createElement("article");card.className="grade-card"+(state.filterGrade===g?" selected":"");card.style.setProperty("--accent",data.color);card.innerHTML='<div class="num">'+g+'</div><h4>'+data.title+'</h4><div class="go">حصص هذا الصف</div>';card.addEventListener("click",function(){state.filterGrade=g;updateScheduleHead();renderHomeGrades();renderWeekGrid();qs("#scheduleSection").scrollIntoView({behavior:"smooth"});});grid.appendChild(card);});}
-  function updateScheduleHead(){var title=qs("#scheduleTitle");var sub=qs("#scheduleSub");if(!title||!sub)return;if(!state.isTeacher&&state.studentGrade){title.textContent="حصص "+window.PORTAL_CONTENT[state.studentGrade].title;sub.textContent="دخلت برمز المعلم";return;}if(state.filterGrade==="all"){title.textContent="الجدول الأسبوعي";sub.textContent="كل الصفوف";}else{title.textContent="حصص "+window.PORTAL_CONTENT[state.filterGrade].title;sub.textContent="حصص هذا الصف";}}
-  function loadClasses(){if(state.firebaseReady){return state.db.collection("weeklyClasses").get().then(function(snap){state.classes=snap.docs.map(function(d){var obj=d.data();obj.id=d.id;return obj;});renderWeekGrid();}).catch(function(){state.classes=JSON.parse(localStorage.getItem("math_classes")||"[]");renderWeekGrid();});}state.classes=JSON.parse(localStorage.getItem("math_classes")||"[]");renderWeekGrid();return Promise.resolve();}
-  function filteredClasses(){var grade=!state.isTeacher&&state.studentGrade?state.studentGrade:state.filterGrade;return state.classes.filter(function(c){return grade==="all"||String(c.grade)===String(grade);}).sort(function(a,b){return String(a.start||"").localeCompare(String(b.start||""));});}
-  function classCardHtml(c){var color=(window.PORTAL_CONTENT[c.grade]||{}).color||"#0e8f8a";var gradeName=(window.PORTAL_CONTENT[c.grade]||{}).title||("الصف "+c.grade);var html='<article class="class-card" style="--accent:'+color+'">';html+='<div class="time">'+formatTime(c.start)+(c.end?" – "+formatTime(c.end):"")+"</div>";html+='<div class="topic">'+escapeHtml(c.topic||"حصة رياضيات")+"</div>";html+='<div class="meta">'+escapeHtml(gradeName)+(c.place?" · "+escapeHtml(c.place):"")+"</div>";if(c.notes)html+='<div class="meta">'+escapeHtml(c.notes)+"</div>";if(state.isTeacher){html+='<div class="row-actions"><span class="meta">كل أسبوع</span><button class="btn-tiny del-class" data-id="'+escapeHtml(c.id)+'" type="button">حذف</button></div>';}else{html+='<div class="meta">كل أسبوع</div>';}return html+"</article>";}
-  function renderWeekGrid(){var grid=qs("#weekGrid");if(!grid)return;var today=new Date().getDay();var items=canSeeSchedule()?filteredClasses():[];var html="";DAYS.forEach(function(name,day){var list=items.filter(function(c){return Number(c.day)===day;});html+='<div class="day-col'+(day===today?" today":"")+'">';html+="<h4>"+name+(day===today?" · اليوم":"")+"</h4>";html+='<div class="day-list">';if(list.length)html+=list.map(classCardHtml).join("");else html+='<div class="meta" style="color:var(--muted);padding:8px;font-size:.8rem">لا حصة</div>';html+="</div></div>";});grid.innerHTML=html;var empty=qs("#weekEmpty");if(empty)empty.classList.toggle("hidden",items.length>0);grid.querySelectorAll(".del-class").forEach(function(btn){btn.addEventListener("click",function(){deleteClass(btn.getAttribute("data-id"));});});}
-  function fillGradeSelect(){var sel=qs("#classGrade");if(!sel)return;sel.innerHTML=Object.keys(window.PORTAL_CONTENT).map(function(g){return '<option value="'+g+'">'+window.PORTAL_CONTENT[g].title+"</option>";}).join("");}
-  function openClassModal(){if(!state.isTeacher)return openTeacherModal();qs("#classMsg").textContent="";if(state.filterGrade!=="all")qs("#classGrade").value=state.filterGrade;qs("#classModal").classList.remove("hidden");}
-  function closeClassModal(){qs("#classModal").classList.add("hidden");}
-  function saveClass(){var msg=qs("#classMsg");var item={grade:qs("#classGrade").value,day:Number(qs("#classDay").value),start:qs("#classStart").value,end:qs("#classEnd").value,topic:qs("#classTopic").value.trim(),place:qs("#classPlace").value.trim(),notes:qs("#classNotes").value.trim(),createdAt:Date.now()};if(!item.topic||!item.start){msg.className="msg err";msg.textContent="أدخل الموضوع والوقت.";return;}function finish(id){item.id=id;state.classes.push(item);msg.className="msg ok";msg.textContent="تم حفظ الحصة.";qs("#classTopic").value="";qs("#classNotes").value="";renderWeekGrid();setTimeout(closeClassModal,400);}if(state.firebaseReady){state.db.collection("weeklyClasses").add(item).then(function(ref){finish(ref.id);}).catch(function(){msg.className="msg err";msg.textContent="تعذر الحفظ.";});}else{finish("local-"+Date.now());localStorage.setItem("math_classes",JSON.stringify(state.classes));}}
-  function deleteClass(id){if(!id||!state.isTeacher)return;if(!confirm("حذف هذه الحصة؟"))return;function done(){state.classes=state.classes.filter(function(c){return c.id!==id;});if(!state.firebaseReady)localStorage.setItem("math_classes",JSON.stringify(state.classes));renderWeekGrid();}if(state.firebaseReady&&String(id).indexOf("local-")!==0){state.db.collection("weeklyClasses").doc(id).delete().then(done).catch(function(){alert("تعذر الحذف.");});}else{done();}}
-  function openTeacherModal(){qs("#teacherModal").classList.remove("hidden");qs("#teacherCode").focus();}
-  function closeTeacherModal(){qs("#teacherModal").classList.add("hidden");qs("#loginMsg").textContent="";qs("#teacherCode").value="";}
-  function loginTeacher(){var code=qs("#teacherCode").value.trim();var msg=qs("#loginMsg");if(!code){msg.className="msg err";msg.textContent="أدخل الرقم السري.";return;}function success(){sessionStorage.setItem("math_teacher","1");state.isTeacher=true;closeTeacherModal();updateAccessUI();renderCodesEditor();renderHomeGrades();updateScheduleHead();renderWeekGrid();}if(state.firebaseReady){state.db.collection("settings").doc("teacher").get().then(function(doc){if(doc.exists&&String(doc.data().secretCode)===code)success();else{msg.className="msg err";msg.textContent="الرقم غير مطابق.";}}).catch(function(){msg.className="msg err";msg.textContent="خطأ Firebase.";});return;}if(code===window.FALLBACK_TEACHER_CODE)success();else{msg.className="msg err";msg.textContent="رقم خاطئ. للتجريب: 123456";}}
-  function logoutTeacher(){sessionStorage.removeItem("math_teacher");state.isTeacher=false;updateAccessUI();renderHomeGrades();updateScheduleHead();renderWeekGrid();}
-  function on(id,ev,fn){var el=qs(id);if(el)el.addEventListener(ev,fn);}
-  function bind(){on("#btnTeacher","click",openTeacherModal);on("#btnLogout","click",logoutTeacher);on("#closeModal","click",closeTeacherModal);on("#doLogin","click",loginTeacher);on("#teacherCode","keydown",function(e){if(e.key==="Enter")loginTeacher();});on("#teacherModal","click",function(e){if(e.target.id==="teacherModal")closeTeacherModal();});on("#exploreBtn","click",function(){qs("#scheduleSection").scrollIntoView({behavior:"smooth"});});on("#btnStudentEnter","click",studentEnter);on("#studentCode","keydown",function(e){if(e.key==="Enter")studentEnter();});on("#btnStudentOut","click",studentOut);on("#btnAddClass","click",openClassModal);on("#closeClassModal","click",closeClassModal);on("#saveClass","click",saveClass);on("#saveCodes","click",saveCodes);on("#classModal","click",function(e){if(e.target.id==="classModal")closeClassModal();});on("#btnAllGrades","click",function(){if(!state.isTeacher)return;state.filterGrade="all";updateScheduleHead();renderHomeGrades();renderWeekGrid();});on("#brand","click",function(){window.scrollTo({top:0,behavior:"smooth"});});}
-  document.addEventListener("DOMContentLoaded",function(){initFirebase();fillGradeSelect();bind();loadCodes().then(loadClasses).then(function(){updateAccessUI();renderHomeGrades();updateScheduleHead();renderWeekGrid();});});
+  function qs(id) { return document.getElementById(id); }
+  var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  var CODES = {5:"حصة5",6:"حصة6",7:"حصة7",8:"حصة8",9:"حصة9",10:"حصة10",11:"حصة11",12:"حصة12"};
+  var state = {
+    teacher: sessionStorage.getItem("math_teacher") === "1",
+    grade: sessionStorage.getItem("math_student_grade") || "",
+    classes: JSON.parse(localStorage.getItem("math_classes") || "[]")
+  };
+
+  function setHidden(el, hide) { if (el) el.classList.toggle("hidden", !!hide); }
+
+  function paint() {
+    var open = state.teacher || !!state.grade;
+    setHidden(qs("studentGate"), open);
+    setHidden(qs("afterLoginCta"), !open || state.teacher);
+    setHidden(qs("gradesSection"), !open);
+    setHidden(qs("scheduleSection"), !open);
+    setHidden(qs("teacherBar"), !state.teacher);
+    setHidden(qs("btnTeacher"), state.teacher);
+    setHidden(qs("btnAddClass"), !state.teacher);
+    setHidden(qs("teacherScheduleHint"), !state.teacher);
+    setHidden(qs("btnAllGrades"), !state.teacher);
+    var pill = qs("fbStatus");
+    if (pill) pill.innerHTML = "<i></i> وضع تجريبي";
+    renderGrades();
+    renderWeek();
+    renderCodes();
+  }
+
+  function renderGrades() {
+    var grid = qs("gradesGrid");
+    if (!grid || !window.PORTAL_CONTENT) return;
+    grid.innerHTML = "";
+    var list = state.teacher ? Object.keys(window.PORTAL_CONTENT) : (state.grade ? [state.grade] : []);
+    list.forEach(function (g) {
+      var d = window.PORTAL_CONTENT[g];
+      var card = document.createElement("article");
+      card.className = "grade-card";
+      card.style.setProperty("--accent", d.color);
+      card.innerHTML = '<div class="num">' + g + "</div><h4>" + d.title + '</h4><div class="go">حصص هذا الصف</div>';
+      grid.appendChild(card);
+    });
+  }
+
+  function renderWeek() {
+    var grid = qs("weekGrid");
+    if (!grid) return;
+    var today = new Date().getDay();
+    var items = state.classes.filter(function (c) {
+      return state.teacher || String(c.grade) === String(state.grade);
+    });
+    var html = "";
+    DAYS.forEach(function (name, day) {
+      var list = items.filter(function (c) { return Number(c.day) === day; });
+      html += '<div class="day-col' + (day === today ? " today" : "") + '"><h4>' + name +
+        (day === today ? " · اليوم" : "") + '</h4><div class="day-list">';
+      if (!list.length) html += '<div class="meta" style="color:var(--muted);padding:8px">لا حصة</div>';
+      list.forEach(function (c) {
+        html += '<article class="class-card"><div class="time">' + (c.start || "") +
+          (c.end ? " - " + c.end : "") + '</div><div class="topic">' + (c.topic || "") +
+          "</div><div class='meta'>الصف " + c.grade + (c.place ? " · " + c.place : "") + "</div>";
+        if (state.teacher) html += '<button class="btn-tiny" data-del="' + c.id + '">حذف</button>';
+        html += "</article>";
+      });
+      html += "</div></div>";
+    });
+    grid.innerHTML = html;
+    var empty = qs("weekEmpty");
+    if (empty) empty.classList.toggle("hidden", items.length > 0);
+    grid.querySelectorAll("[data-del]").forEach(function (btn) {
+      btn.onclick = function () {
+        if (!confirm("حذف هذه الحصة؟")) return;
+        state.classes = state.classes.filter(function (c) { return c.id !== btn.getAttribute("data-del"); });
+        localStorage.setItem("math_classes", JSON.stringify(state.classes));
+        renderWeek();
+      };
+    });
+  }
+
+  function renderCodes() {
+    var host = qs("codesEditor");
+    if (!host || !window.PORTAL_CONTENT) return;
+    var html = "";
+    Object.keys(window.PORTAL_CONTENT).forEach(function (g) {
+      html += '<div class="code-row"><label>' + window.PORTAL_CONTENT[g].title +
+        '</label><input data-grade="' + g + '" class="code-input" value="' + (CODES[g] || "") + '" /></div>';
+    });
+    host.innerHTML = html;
+  }
+
+  function fillSelect() {
+    var sel = qs("classGrade");
+    if (!sel || !window.PORTAL_CONTENT) return;
+    sel.innerHTML = Object.keys(window.PORTAL_CONTENT).map(function (g) {
+      return '<option value="' + g + '">' + window.PORTAL_CONTENT[g].title + "</option>";
+    }).join("");
+  }
+
+  function click(id, fn) {
+    var el = qs(id);
+    if (el) el.addEventListener("click", fn);
+  }
+
+  function start() {
+    fillSelect();
+    click("btnTeacher", function () { qs("teacherModal").classList.remove("hidden"); });
+    click("closeModal", function () { qs("teacherModal").classList.add("hidden"); });
+    click("btnLogout", function () {
+      sessionStorage.removeItem("math_teacher");
+      state.teacher = false;
+      paint();
+    });
+    click("doLogin", function () {
+      var code = qs("teacherCode").value.trim();
+      var msg = qs("loginMsg");
+      var ok = code === (window.FALLBACK_TEACHER_CODE || "123456");
+      if (!ok) { msg.className = "msg err"; msg.textContent = "رقم خاطئ. جرب 123456"; return; }
+      sessionStorage.setItem("math_teacher", "1");
+      state.teacher = true;
+      qs("teacherModal").classList.add("hidden");
+      paint();
+    });
+    click("btnStudentEnter", function () {
+      var raw = (qs("studentCode").value || "").trim();
+      var msg = qs("studentMsg");
+      var found = null;
+      Object.keys(CODES).forEach(function (g) { if (CODES[g] === raw) found = g; });
+      if (!found) { msg.className = "msg err"; msg.textContent = "الرمز غير صحيح"; return; }
+      state.grade = found;
+      sessionStorage.setItem("math_student_grade", found);
+      msg.className = "msg ok";
+      msg.textContent = "تم الدخول";
+      paint();
+      qs("scheduleSection").scrollIntoView({ behavior: "smooth" });
+    });
+    click("btnStudentOut", function () {
+      sessionStorage.removeItem("math_student_grade");
+      state.grade = "";
+      paint();
+    });
+    click("btnAddClass", function () { qs("classModal").classList.remove("hidden"); });
+    click("closeClassModal", function () { qs("classModal").classList.add("hidden"); });
+    click("saveClass", function () {
+      var item = {
+        id: "local-" + Date.now(),
+        grade: qs("classGrade").value,
+        day: Number(qs("classDay").value),
+        start: qs("classStart").value,
+        end: qs("classEnd").value,
+        topic: qs("classTopic").value.trim(),
+        place: qs("classPlace").value.trim(),
+        notes: qs("classNotes").value.trim()
+      };
+      var msg = qs("classMsg");
+      if (!item.topic || !item.start) { msg.className = "msg err"; msg.textContent = "أدخل الموضوع والوقت"; return; }
+      state.classes.push(item);
+      localStorage.setItem("math_classes", JSON.stringify(state.classes));
+      qs("classModal").classList.add("hidden");
+      paint();
+    });
+    click("saveCodes", function () {
+      document.querySelectorAll(".code-input").forEach(function (inp) {
+        CODES[inp.getAttribute("data-grade")] = inp.value.trim();
+      });
+      var msg = qs("codesMsg");
+      msg.className = "msg ok";
+      msg.textContent = "تم حفظ الرموز على هذا الجهاز";
+    });
+    paint();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
 })();
