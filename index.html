@@ -3,16 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
   <title>جدول حصص الرياضيات | الصفوف 5–12</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/style.css?v=10" />
 </head>
 <body>
   <div id="teacherBar" class="teacher-bar hidden">
     <div class="container">
-      <span>وضع المعلم مفعّل — يمكنك إضافة الحصص الأسبوعية أو حذفها</span>
+      <span>وضع المعلم مفعّل</span>
       <button class="btn btn-outline" id="btnLogout" type="button">تسجيل الخروج</button>
     </div>
   </div>
@@ -22,7 +21,7 @@
         <div class="logo-fallback">م</div>
         <div>
           <h1>حصص الرياضيات</h1>
-          <small>الجدول الأسبوعي للصفوف 5–12</small>
+          <small>حصة واحدة كل أسبوع</small>
         </div>
       </div>
       <nav class="nav-actions">
@@ -34,9 +33,9 @@
   <main>
     <section class="hero">
       <div class="container hero-content">
-        <span class="eyebrow">جدول الحصص فقط</span>
-        <h2>حصص الرياضيات الأسبوعية من الخامس حتى الثاني عشر</h2>
-        <p>الطالب يدخل برمز يعطيه المعلم. بدون الرمز لا تظهر الحصص.</p>
+        <span class="eyebrow">حصة واحدة لكل صف</span>
+        <h2>حصص الرياضيات الأسبوعية</h2>
+        <p>الطالب يدخل برمز يعطيه المعلم. تظهر حصة واحدة فقط.</p>
         <div class="student-gate" id="studentGate">
           <label for="studentCode">رمز دخول الحصة</label>
           <div class="gate-row">
@@ -46,7 +45,7 @@
           <div class="msg" id="studentMsg"></div>
         </div>
         <div class="hero-cta hidden" id="afterLoginCta">
-          <button class="btn btn-gold" id="exploreBtn" type="button">عرض حصصي</button>
+          <button class="btn btn-gold" id="exploreBtn" type="button">عرض حصتي</button>
           <button class="btn btn-outline" id="btnStudentOut" type="button">خروج الطالب</button>
         </div>
       </div>
@@ -56,7 +55,7 @@
         <div class="section-head">
           <div>
             <h3>اختر الصف</h3>
-            <p>اضغط الصف لتصفية الحصص الظاهرة في الجدول</p>
+            <p>حصة واحدة لكل صف كل أسبوع</p>
           </div>
         </div>
         <div class="grades-grid" id="gradesGrid"></div>
@@ -66,36 +65,34 @@
       <div class="container">
         <div class="section-head">
           <div>
-            <h3 id="scheduleTitle">الجدول الأسبوعي</h3>
-            <p id="scheduleSub">كل الصفوف</p>
+            <h3 id="scheduleTitle">الحصة الأسبوعية</h3>
+            <p id="scheduleSub">حصة واحدة</p>
           </div>
           <div class="schedule-tools">
-            <button class="btn btn-ghost" id="btnAllGrades" type="button">كل الصفوف</button>
             <button class="btn btn-gold hidden" id="btnAddClass" type="button">+ إضافة حصة</button>
           </div>
         </div>
         <div id="teacherScheduleHint" class="teacher-panel hidden" style="margin:0 0 16px">
           <h3>رموز دخول الطلبة</h3>
-          <p style="color:var(--muted);margin-bottom:10px">ضع رمزاً لكل صف ثم أعطِه للطلبة.</p>
           <div id="codesEditor"></div>
           <div class="msg" id="codesMsg"></div>
           <button class="btn btn-teal" id="saveCodes" type="button">حفظ الرموز</button>
         </div>
-        <div class="week-grid" id="weekGrid"></div>
-        <p class="empty-note" id="weekEmpty">لا توجد حصص بعد. المعلم يضيف الحصة من الزر الذهبي.</p>
+        <div class="week-list" id="weekGrid"></div>
+        <p class="empty-note" id="weekEmpty">لا توجد حصة بعد.</p>
       </div>
     </section>
   </main>
   <footer>
     <div class="container">
       <strong>حصص الرياضيات</strong>
-      <p>جدول أسبوعي فقط — بدون دروس أو تمارين</p>
+      <p>حصة واحدة كل أسبوع</p>
     </div>
   </footer>
   <div class="modal-back hidden" id="classModal">
     <div class="modal modal-wide" role="dialog">
-      <h3>إضافة حصة أسبوعية</h3>
-      <p>الحصة تتكرر كل أسبوع حتى يحذفها المعلم.</p>
+      <h3>إضافة حصة الأسبوع</h3>
+      <p>لكل صف حصة واحدة فقط. الجديدة تستبدل القديمة.</p>
       <div class="form-grid">
         <div>
           <label for="classGrade">الصف</label>
@@ -123,11 +120,11 @@
         </div>
       </div>
       <label for="classTopic" style="margin-top:10px">موضوع الحصة</label>
-      <input id="classTopic" placeholder="مثال: الكسور المتكافئة" />
-      <label for="classPlace" style="margin-top:10px">المكان أو الرابط</label>
-      <input id="classPlace" placeholder="قاعة 12 أو رابط الحصة" />
+      <input id="classTopic" placeholder="مثال: الكسور" />
+      <label for="classPlace" style="margin-top:10px">رابط اليوتيوب أو المكان</label>
+      <input id="classPlace" placeholder="الصق رابط البث هنا" />
       <label for="classNotes" style="margin-top:10px">ملاحظة</label>
-      <textarea id="classNotes" rows="2" placeholder="اختياري"></textarea>
+      <textarea id="classNotes" rows="2"></textarea>
       <div class="msg" id="classMsg"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button>
@@ -138,7 +135,7 @@
   <div class="modal-back hidden" id="teacherModal">
     <div class="modal" role="dialog">
       <h3>دخول المعلم</h3>
-      <p>للتجريب الرقم: 123456</p>
+      <p>للتجريب: 123456</p>
       <label for="teacherCode">الرقم السري</label>
       <input id="teacherCode" type="password" inputmode="numeric" autocomplete="off" />
       <div class="msg" id="loginMsg"></div>
@@ -148,8 +145,7 @@
       </div>
     </div>
   </div>
-  <script src="js/firebase-config.js"></script>
-  <script src="js/content.js"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="js/content.js?v=10"></script>
+  <script src="js/app.js?v=10"></script>
 </body>
 </html>
