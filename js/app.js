@@ -52,29 +52,33 @@
       var d = window.PORTAL_CONTENT[g];
       var card = document.createElement("article");
       card.className = "grade-card"; card.style.setProperty("--accent", d.color);
-      card.innerHTML = '<div class="num">' + g + "</div><h4>" + d.title + '</h4><div class="go">حصص هذا الصف</div>';
+      card.innerHTML = '<div class="num">' + g + "</div><h4>" + d.title + '</h4><div class="go">حصة هذا الصف</div>';
       grid.appendChild(card);
     });
   }
   function renderWeek() {
     var grid = qs("weekGrid"); if (!grid) return;
-    var today = new Date().getDay();
     var items = state.classes.filter(function (c) { return state.teacher || String(c.grade) === String(state.grade); });
     renderPlayer(items);
+    grid.className = "week-list";
+    if (!items.length) {
+      grid.innerHTML = "";
+      var empty = qs("weekEmpty"); if (empty) empty.classList.remove("hidden");
+      return;
+    }
+    var empty = qs("weekEmpty"); if (empty) empty.classList.add("hidden");
     var html = "";
-    DAYS.forEach(function (name, day) {
-      var list = items.filter(function (c) { return Number(c.day) === day; });
-      html += '<div class="day-col' + (day === today ? " today" : "") + '"><h4>' + name + (day === today ? " · اليوم" : "") + '</h4><div class="day-list">';
-      if (!list.length) html += '<div class="meta" style="color:var(--muted);padding:8px">لا حصة</div>';
-      list.forEach(function (c) {
-        html += '<article class="class-card"><div class="time">' + (c.start || "") + (c.end ? " - " + c.end : "") + '</div><div class="topic">' + (c.topic || "") + "</div><div class='meta'>الصف " + c.grade + (c.place ? " · " + c.place : "") + "</div>";
-        if (state.teacher) html += '<button class="btn-tiny" data-del="' + c.id + '">حذف</button>';
-        html += "</article>";
-      });
-      html += "</div></div>";
+    items.forEach(function (c) {
+      var dayName = DAYS[Number(c.day)] || "";
+      html += '<article class="one-class"><div class="one-day">' + dayName + '</div>';
+      html += '<div class="one-body"><div class="time">' + (c.start || "") + (c.end ? " - " + c.end : "") + '</div>';
+      html += '<div class="topic">' + (c.topic || "حصة رياضيات") + '</div>';
+      html += '<div class="meta">الصف ' + c.grade + ' · كل أسبوع</div>';
+      if (c.place) html += '<div class="meta">' + c.place + '</div>';
+      if (state.teacher) html += '<button class="btn-tiny" data-del="' + c.id + '">حذف</button>';
+      html += '</div></article>';
     });
     grid.innerHTML = html;
-    var empty = qs("weekEmpty"); if (empty) empty.classList.toggle("hidden", items.length > 0);
     grid.querySelectorAll("[data-del]").forEach(function (btn) {
       btn.onclick = function () {
         if (!confirm("حذف هذه الحصة؟")) return;
@@ -120,7 +124,11 @@
       var item = {id:"local-"+Date.now(),grade:qs("classGrade").value,day:Number(qs("classDay").value),start:qs("classStart").value,end:qs("classEnd").value,topic:qs("classTopic").value.trim(),place:qs("classPlace").value.trim(),notes:qs("classNotes").value.trim()};
       var msg = qs("classMsg");
       if (!item.topic || !item.start) { msg.className = "msg err"; msg.textContent = "أدخل الموضوع والوقت"; return; }
-      state.classes.push(item); localStorage.setItem("math_classes", JSON.stringify(state.classes)); qs("classModal").classList.add("hidden"); paint();
+      state.classes = state.classes.filter(function (c) { return String(c.grade) !== String(item.grade); });
+      state.classes.push(item);
+      localStorage.setItem("math_classes", JSON.stringify(state.classes));
+      qs("classModal").classList.add("hidden");
+      paint();
     });
     click("saveCodes", function () {
       document.querySelectorAll(".code-input").forEach(function (inp) { CODES[inp.getAttribute("data-grade")] = inp.value.trim(); });
