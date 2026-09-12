@@ -17,6 +17,13 @@
   }
   function persistLocal() {
     localStorage.setItem("math_classes", JSON.stringify(state.classes));
+    localStorage.setItem("math_codes", JSON.stringify(CODES));
+  }
+  function fbErr(err) {
+    var c = err && err.code ? String(err.code) : "";
+    if (c.indexOf("permission") !== -1) return "قواعد Firebase تمنع الحفظ. انشر القواعد المطلوبة";
+    if (c.indexOf("unavailable") !== -1) return "تعذر الاتصال بـ Firebase";
+    return "فشل الحفظ: " + (c || "خطأ غير معروف");
   }
   function classCol() {
     return fbDb ? fbDb.collection("weeklyClasses") : null;
@@ -24,7 +31,7 @@
   function saveClassDoc(item) {
     persistLocal();
     var col = classCol();
-    if (!col) return Promise.resolve();
+    if (!col) return Promise.reject(new Error("no-db"));
     var data = {
       grade: String(item.grade),
       day: Number(item.day),
@@ -42,6 +49,11 @@
     if (!col) return Promise.resolve();
     return col.doc(String(id)).delete();
   }
+  function saveCodesDoc() {
+    persistLocal();
+    if (!fbDb) return Promise.reject(new Error("no-db"));
+    return fbDb.collection("settings").doc("studentCodes").set(CODES, { merge: true });
+  }
   function listenClasses() {
     var col = classCol();
     if (!col) return;
@@ -55,6 +67,16 @@
       state.classes = list;
       persistLocal();
       paint();
+    }, function () {});
+  }
+  function listenCodes() {
+    if (!fbDb) return;
+    fbDb.collection("settings").doc("studentCodes").onSnapshot(function (snap) {
+      if (!snap.exists) return;
+      var data = snap.data() || {};
+      Object.keys(data).forEach(function (g) { CODES[g] = String(data[g] || ""); });
+      persistLocal();
+      renderCodes();
     }, function () {});
   }
   function authError(code) {
@@ -174,6 +196,10 @@
   }
   var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
   var CODES = {5:"حصة5",6:"حصة6",7:"حصة7",8:"حصة8",9:"حصة9",10:"حصة10",11:"حصة11",12:"حصة12"};
+  try {
+    var savedCodes = JSON.parse(localStorage.getItem("math_codes") || "{}");
+    Object.keys(savedCodes).forEach(function (g) { if (savedCodes[g]) CODES[g] = savedCodes[g]; });
+  } catch (e) {}
   var state = {teacher:false,grade:sessionStorage.getItem("math_student_grade")||"",classes:JSON.parse(localStorage.getItem("math_classes")||"[]")};
   function setHidden(el, hide) { if (el) el.classList.toggle("hidden", !!hide); }
   function paint() {
@@ -229,7 +255,7 @@
         if (!confirm("حذف هذه الحصة؟")) return;
         var id = btn.getAttribute("data-del");
         state.classes = state.classes.filter(function (c) { return c.id !== id; });
-        deleteClassDoc(id).then(function () { renderWeek(); }).catch(function () { alert("تعذر الحذف من Firebase. حدّث قواعد Firestore"); });
+        deleteClassDoc(id).then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); });
       };
     });
     grid.querySelectorAll("[data-yt]").forEach(function (btn) {
@@ -240,7 +266,7 @@
         if (!youtubeId(url)) { alert("الرابط ليس رابط يوتيوب صحيح"); return; }
         var found = null;
         state.classes.forEach(function (c) { if (c.id === id) { c.place = url.trim(); found = c; } });
-        if (found) saveClassDoc(found).then(function () { renderWeek(); }).catch(function () { alert("تعذر حفظ الرابط في Firebase"); });
+        if (found) saveClassDoc(found).then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); });
       };
     });
   }
@@ -265,6 +291,7 @@
     initFb();
     fillSelect();
     listenClasses();
+    listenCodes();
     if (fbAuth) {
       fbAuth.onAuthStateChanged(function (user) {
         state.teacher = !!user;
@@ -294,7 +321,7 @@
     });
     click("btnStudentEnter", function () {
       var raw = (qs("studentCode").value || "").trim(); var msg = qs("studentMsg"); var found = null;
-      Object.keys(CODES).forEach(function (g) { if (CODES[g] === raw) found = g; });
+      Object.keys(CODES).forEach(function (g) { if (String(CODES[g]) === raw) found = g; });
       if (!found) { msg.className = "msg err"; msg.textContent = "الرمز غير صحيح"; return; }
       state.grade = found; sessionStorage.setItem("math_student_grade", found); paint();
       qs("scheduleSection").scrollIntoView({ behavior: "smooth" });
@@ -323,14 +350,20 @@
         qs("classModal").classList.add("hidden");
         msg.textContent = "";
         paint();
-      }).catch(function () {
+      }).catch(function (err) {
         msg.className = "msg err";
-        msg.textContent = "لم يُحفظ في Firebase. حدّث قواعد Firestore";
+        msg.textContent = fbErr(err);
       });
     });
     click("saveCodes", function () {
       document.querySelectorAll(".code-input").forEach(function (inp) { CODES[inp.getAttribute("data-grade")] = inp.value.trim(); });
-      var msg = qs("codesMsg"); msg.className = "msg ok"; msg.textContent = "تم حفظ الرموز";
+      var msg = qs("codesMsg");
+      msg.className = "msg"; msg.textContent = "جاري الحفظ في Firebase...";
+      saveCodesDoc().then(function () {
+        msg.className = "msg ok"; msg.textContent = "تم حفظ الرموز في Firebase";
+      }).catch(function (err) {
+        msg.className = "msg err"; msg.textContent = fbErr(err);
+      });
     });
     paint();
   }
