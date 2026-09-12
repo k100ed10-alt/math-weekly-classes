@@ -1,6 +1,18 @@
 (function () {
   function qs(id) { return document.getElementById(id); }
   var ytPlayer = null;
+  var fbReady = false;
+  var fbDb = null;
+  function initFb() {
+    try {
+      var cfg = window.FIREBASE_CONFIG;
+      if (!cfg || !cfg.apiKey || String(cfg.apiKey).indexOf("PASTE") !== -1) return;
+      if (!window.firebase) return;
+      if (!firebase.apps.length) firebase.initializeApp(cfg);
+      fbDb = firebase.firestore();
+      fbReady = true;
+    } catch (e) { fbReady = false; }
+  }
   function youtubeId(url) {
     var s = String(url || "");
     var m = s.match(/(?:youtu\.be\/|v=|\/live\/|embed\/)([A-Za-z0-9_-]{11})/);
@@ -123,7 +135,7 @@
     setHidden(qs("btnAddClass"), !state.teacher);
     setHidden(qs("teacherScheduleHint"), !state.teacher);
     var pill = qs("fbStatus");
-    if (pill) pill.innerHTML = "<i></i> وضع تجريبي";
+    if (pill) pill.innerHTML = fbReady ? "<i></i> مرتبط بـ Firebase" : "<i></i> وضع تجريبي";
     renderGrades(); renderWeek(); renderCodes();
   }
   function renderGrades() {
@@ -192,15 +204,38 @@
     sel.innerHTML = Object.keys(window.PORTAL_CONTENT).map(function (g) { return '<option value="' + g + '">' + window.PORTAL_CONTENT[g].title + "</option>"; }).join("");
   }
   function click(id, fn) { var el = qs(id); if (el) el.addEventListener("click", fn); }
+  function teacherOk() {
+    sessionStorage.setItem("math_teacher", "1");
+    state.teacher = true;
+    qs("teacherModal").classList.add("hidden");
+    paint();
+  }
   function start() {
+    initFb();
     fillSelect();
     click("btnTeacher", function () { qs("teacherModal").classList.remove("hidden"); });
     click("closeModal", function () { qs("teacherModal").classList.add("hidden"); });
     click("btnLogout", function () { sessionStorage.removeItem("math_teacher"); state.teacher = false; paint(); });
     click("doLogin", function () {
-      var code = qs("teacherCode").value.trim(); var msg = qs("loginMsg");
-      if (code !== (window.FALLBACK_TEACHER_CODE || "123456")) { msg.className = "msg err"; msg.textContent = "رقم خاطئ. جرب 123456"; return; }
-      sessionStorage.setItem("math_teacher", "1"); state.teacher = true; qs("teacherModal").classList.add("hidden"); paint();
+      var code = qs("teacherCode").value.trim();
+      var msg = qs("loginMsg");
+      function fail(t) { msg.className = "msg err"; msg.textContent = t; }
+      if (!code) { fail("أدخل الرقم السري"); return; }
+      if (fbDb) {
+        msg.className = "msg"; msg.textContent = "جاري التحقق من Firebase...";
+        fbDb.collection("settings").doc("teacher").get().then(function (snap) {
+          var remote = snap.exists ? String(snap.data().code || snap.data().secret || "").trim() : "";
+          if (remote && code === remote) teacherOk();
+          else if (!remote && code === (window.FALLBACK_TEACHER_CODE || "123456")) teacherOk();
+          else fail("رقم خاطئ");
+        }).catch(function () {
+          if (code === (window.FALLBACK_TEACHER_CODE || "123456")) teacherOk();
+          else fail("تعذر الاتصال بـ Firebase");
+        });
+        return;
+      }
+      if (code === (window.FALLBACK_TEACHER_CODE || "123456")) teacherOk();
+      else fail("رقم خاطئ");
     });
     click("btnStudentEnter", function () {
       var raw = (qs("studentCode").value || "").trim(); var msg = qs("studentMsg"); var found = null;
