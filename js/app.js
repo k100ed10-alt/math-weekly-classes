@@ -45,9 +45,20 @@
       '<div class="yt-wrap" id="ytBox">' +
       '<div id="ytApi"></div>' +
       '<button type="button" class="yt-cover" id="ytCover">تشغيل البث هنا</button>' +
+      '<button type="button" class="yt-exit hidden" id="ytExit">إغلاق التكبير</button>' +
       '</div>' +
-      '<p class="meta">اضغط تشغيل هنا. لا يوجد زر يوتيوب ظاهر.</p>';
+      '<p class="meta">اضغط تشغيل أو تكبير الشاشة.</p>';
     host.oncontextmenu = function (e) { e.preventDefault(); return false; };
+    function setFull(on) {
+      var boxEl = document.getElementById("ytBox");
+      var full = document.getElementById("ytFull");
+      var exitBtn = document.getElementById("ytExit");
+      if (!boxEl) return;
+      boxEl.classList.toggle("is-full", on);
+      document.body.classList.toggle("yt-lock", on);
+      if (full) full.textContent = on ? "تصغير" : "تكبير الشاشة";
+      if (exitBtn) exitBtn.classList.toggle("hidden", !on);
+    }
     function bindControls() {
       var playBtn = document.getElementById("ytPlay");
       var cover = document.getElementById("ytCover");
@@ -58,18 +69,14 @@
         else ytPlayer.playVideo();
       }
       if (playBtn) playBtn.onclick = toggle;
-      if (cover) cover.onclick = function () {
-        toggle();
-        cover.classList.add("hidden");
-      };
+      if (cover) cover.onclick = function () { toggle(); cover.classList.add("hidden"); };
       var full = document.getElementById("ytFull");
       var boxEl = document.getElementById("ytBox");
+      var exitBtn = document.getElementById("ytExit");
       if (full && boxEl) {
-        full.onclick = function () {
-          if (boxEl.requestFullscreen) boxEl.requestFullscreen();
-          else if (boxEl.webkitRequestFullscreen) boxEl.webkitRequestFullscreen();
-        };
+        full.onclick = function () { setFull(!boxEl.classList.contains("is-full")); };
       }
+      if (exitBtn) exitBtn.onclick = function () { setFull(false); };
     }
     bindControls();
     loadYtApi(function () {
