@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>حصص الرياضيات</title>
+  <title>منصة حَصاد التعليمية</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=15" />
+  <link rel="stylesheet" href="css/style.css?v=16" />
   <style>
     .yt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .yt-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:16px;background:#000}
@@ -19,9 +19,9 @@
 </head>
 <body>
   <div id="teacherBar" class="teacher-bar hidden"><div class="container"><span>وضع المعلم مفعّل</span><button class="btn btn-outline" id="btnLogout" type="button">تسجيل الخروج</button></div></div>
-  <header class="site-header"><div class="container header-inner"><div class="brand"><div class="logo-fallback">م</div><div><h1>حصص الرياضيات</h1><small>حصة واحدة كل أسبوع</small></div></div><nav class="nav-actions"><span class="status-pill" id="fbStatus"><i></i> جاري</span><button class="btn btn-gold" id="btnTeacher" type="button">دخول المعلم</button></nav></div></header>
+  <header class="site-header"><div class="container header-inner"><div class="brand"><div class="logo-fallback">ح</div><div><h1>منصة حَصاد</h1><small>المنصة التعليمية</small></div></div><nav class="nav-actions"><span class="status-pill" id="fbStatus"><i></i> جاري</span><button class="btn btn-gold" id="btnTeacher" type="button">دخول المعلم</button></nav></div></header>
   <main>
-    <section class="hero"><div class="container hero-content"><span class="eyebrow">بث داخل الصفحة</span><h2>حصص الرياضيات الأسبوعية</h2><p>الطالب يشاهد البث هنا بدون رابط ظاهر.</p>
+    <section class="hero"><div class="container hero-content"><span class="eyebrow">منصة حَصاد التعليمية</span><h2>منصة حَصاد التعليمية</h2><p>حصص مباشرة داخل الصفحة. الطالب يدخل برمز المعلم.</p>
       <div class="student-gate" id="studentGate"><label for="studentCode">رمز الحصة</label><div class="gate-row"><input id="studentCode" placeholder="أدخل الرمز" autocomplete="off" /><button class="btn btn-gold" id="btnStudentEnter" type="button">دخول</button></div><div class="msg" id="studentMsg"></div></div>
       <div class="hero-cta hidden" id="afterLoginCta"><button class="btn btn-outline" id="btnStudentOut" type="button">خروج الطالب</button></div>
     </div></section>
@@ -32,7 +32,7 @@
       <p class="empty-note" id="weekEmpty">لا توجد حصة.</p>
     </div></section>
   </main>
-  <footer><div class="container"><strong>حصص الرياضيات</strong></div></footer>
+  <footer><div class="container"><strong>منصة حَصاد التعليمية</strong></div></footer>
   <div class="modal-back hidden" id="classModal"><div class="modal modal-wide"><h3>إضافة حصة</h3>
     <div class="form-grid"><div><label for="classGrade">الصف</label><select id="classGrade"></select></div><div><label for="classDay">اليوم</label><select id="classDay"><option value="0">الأحد</option><option value="1">الاثنين</option><option value="2">الثلاثاء</option><option value="3">الأربعاء</option><option value="4">الخميس</option><option value="5">الجمعة</option><option value="6">السبت</option></select></div>
     <div><label for="classStart">من</label><input id="classStart" type="time" value="08:00" /></div>
@@ -44,6 +44,6 @@
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button><button class="btn btn-gold" id="saveClass" type="button">حفظ</button></div>
   </div></div>
   <div class="modal-back hidden" id="teacherModal"><div class="modal"><h3>دخول المعلم</h3><p>123456</p><label for="teacherCode">الرقم</label><input id="teacherCode" type="password" /><div class="msg" id="loginMsg"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeModal" type="button">إلغاء</button><button class="btn btn-gold" id="doLogin" type="button">دخول</button></div></div></div>
-  <script src="js/content.js?v=15"></script>
-  <script src="js/app.js?v=15"></script>
+  <script src="js/content.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
 </body></html>
