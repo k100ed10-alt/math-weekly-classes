@@ -15,6 +15,48 @@
       fbReady = true;
     } catch (e) { fbReady = false; }
   }
+  function persistLocal() {
+    localStorage.setItem("math_classes", JSON.stringify(state.classes));
+  }
+  function classCol() {
+    return fbDb ? fbDb.collection("weeklyClasses") : null;
+  }
+  function saveClassDoc(item) {
+    persistLocal();
+    var col = classCol();
+    if (!col) return Promise.resolve();
+    var data = {
+      grade: String(item.grade),
+      day: Number(item.day),
+      start: item.start || "",
+      end: item.end || "",
+      topic: item.topic || "",
+      place: item.place || "",
+      notes: item.notes || ""
+    };
+    return col.doc(String(item.id)).set(data, { merge: true });
+  }
+  function deleteClassDoc(id) {
+    persistLocal();
+    var col = classCol();
+    if (!col) return Promise.resolve();
+    return col.doc(String(id)).delete();
+  }
+  function listenClasses() {
+    var col = classCol();
+    if (!col) return;
+    col.onSnapshot(function (snap) {
+      var list = [];
+      snap.forEach(function (doc) {
+        var d = doc.data() || {};
+        d.id = doc.id;
+        list.push(d);
+      });
+      state.classes = list;
+      persistLocal();
+      paint();
+    }, function () {});
+  }
   function authError(code) {
     if (code === "auth/invalid-email") return "البريد الإلكتروني غير صحيح";
     if (code === "auth/user-not-found") return "هذا الحساب غير موجود";
@@ -185,9 +227,9 @@
     grid.querySelectorAll("[data-del]").forEach(function (btn) {
       btn.onclick = function () {
         if (!confirm("حذف هذه الحصة؟")) return;
-        state.classes = state.classes.filter(function (c) { return c.id !== btn.getAttribute("data-del"); });
-        localStorage.setItem("math_classes", JSON.stringify(state.classes));
-        renderWeek();
+        var id = btn.getAttribute("data-del");
+        state.classes = state.classes.filter(function (c) { return c.id !== id; });
+        deleteClassDoc(id).then(function () { renderWeek(); }).catch(function () { alert("تعذر الحذف من Firebase. حدّث قواعد Firestore"); });
       };
     });
     grid.querySelectorAll("[data-yt]").forEach(function (btn) {
@@ -196,9 +238,9 @@
         var url = prompt("الصق رابط بث اليوتيوب");
         if (!url) return;
         if (!youtubeId(url)) { alert("الرابط ليس رابط يوتيوب صحيح"); return; }
-        state.classes.forEach(function (c) { if (c.id === id) c.place = url.trim(); });
-        localStorage.setItem("math_classes", JSON.stringify(state.classes));
-        renderWeek();
+        var found = null;
+        state.classes.forEach(function (c) { if (c.id === id) { c.place = url.trim(); found = c; } });
+        if (found) saveClassDoc(found).then(function () { renderWeek(); }).catch(function () { alert("تعذر حفظ الرابط في Firebase"); });
       };
     });
   }
@@ -222,6 +264,7 @@
   function start() {
     initFb();
     fillSelect();
+    listenClasses();
     if (fbAuth) {
       fbAuth.onAuthStateChanged(function (user) {
         state.teacher = !!user;
@@ -260,14 +303,30 @@
     click("btnAddClass", function () { qs("classModal").classList.remove("hidden"); });
     click("closeClassModal", function () { qs("classModal").classList.add("hidden"); });
     click("saveClass", function () {
-      var item = {id:"local-"+Date.now(),grade:qs("classGrade").value,day:Number(qs("classDay").value),start:qs("classStart").value,end:qs("classEnd").value,topic:qs("classTopic").value.trim(),place:qs("classPlace").value.trim(),notes:qs("classNotes").value.trim()};
+      var item = {
+        id: "grade-" + qs("classGrade").value,
+        grade: qs("classGrade").value,
+        day: Number(qs("classDay").value),
+        start: qs("classStart").value,
+        end: qs("classEnd").value,
+        topic: qs("classTopic").value.trim(),
+        place: qs("classPlace").value.trim(),
+        notes: qs("classNotes").value.trim()
+      };
       var msg = qs("classMsg");
       if (!item.topic || !item.start) { msg.className = "msg err"; msg.textContent = "أدخل الموضوع والوقت"; return; }
+      if (!fbAuth || !fbAuth.currentUser) { msg.className = "msg err"; msg.textContent = "سجل دخول المعلم أولاً"; return; }
+      msg.className = "msg"; msg.textContent = "جاري الحفظ في Firebase...";
       state.classes = state.classes.filter(function (c) { return String(c.grade) !== String(item.grade); });
       state.classes.push(item);
-      localStorage.setItem("math_classes", JSON.stringify(state.classes));
-      qs("classModal").classList.add("hidden");
-      paint();
+      saveClassDoc(item).then(function () {
+        qs("classModal").classList.add("hidden");
+        msg.textContent = "";
+        paint();
+      }).catch(function () {
+        msg.className = "msg err";
+        msg.textContent = "لم يُحفظ في Firebase. حدّث قواعد Firestore";
+      });
     });
     click("saveCodes", function () {
       document.querySelectorAll(".code-input").forEach(function (inp) { CODES[inp.getAttribute("data-grade")] = inp.value.trim(); });
