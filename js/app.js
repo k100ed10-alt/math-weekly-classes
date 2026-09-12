@@ -3,15 +3,25 @@
   var ytPlayer = null;
   var fbReady = false;
   var fbDb = null;
+  var fbAuth = null;
   function initFb() {
     try {
       var cfg = window.FIREBASE_CONFIG;
       if (!cfg || !cfg.apiKey || String(cfg.apiKey).indexOf("PASTE") !== -1) return;
       if (!window.firebase) return;
       if (!firebase.apps.length) firebase.initializeApp(cfg);
-      fbDb = firebase.firestore();
+      if (firebase.firestore) fbDb = firebase.firestore();
+      if (firebase.auth) fbAuth = firebase.auth();
       fbReady = true;
     } catch (e) { fbReady = false; }
+  }
+  function authError(code) {
+    if (code === "auth/invalid-email") return "البريد الإلكتروني غير صحيح";
+    if (code === "auth/user-not-found") return "هذا الحساب غير موجود";
+    if (code === "auth/wrong-password" || code === "auth/invalid-credential") return "البريد أو كلمة المرور غير صحيحة";
+    if (code === "auth/too-many-requests") return "محاولات كثيرة. انتظر قليلاً";
+    if (code === "auth/operation-not-allowed") return "فعّل تسجيل البريد من Firebase Authentication";
+    return "تعذر تسجيل الدخول";
   }
   function youtubeId(url) {
     var s = String(url || "");
@@ -122,7 +132,7 @@
   }
   var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
   var CODES = {5:"حصة5",6:"حصة6",7:"حصة7",8:"حصة8",9:"حصة9",10:"حصة10",11:"حصة11",12:"حصة12"};
-  var state = {teacher:sessionStorage.getItem("math_teacher")==="1",grade:sessionStorage.getItem("math_student_grade")||"",classes:JSON.parse(localStorage.getItem("math_classes")||"[]")};
+  var state = {teacher:false,grade:sessionStorage.getItem("math_student_grade")||"",classes:JSON.parse(localStorage.getItem("math_classes")||"[]")};
   function setHidden(el, hide) { if (el) el.classList.toggle("hidden", !!hide); }
   function paint() {
     var open = state.teacher || !!state.grade;
@@ -205,7 +215,6 @@
   }
   function click(id, fn) { var el = qs(id); if (el) el.addEventListener("click", fn); }
   function teacherOk() {
-    sessionStorage.setItem("math_teacher", "1");
     state.teacher = true;
     qs("teacherModal").classList.add("hidden");
     paint();
@@ -213,29 +222,32 @@
   function start() {
     initFb();
     fillSelect();
+    if (fbAuth) {
+      fbAuth.onAuthStateChanged(function (user) {
+        state.teacher = !!user;
+        paint();
+      });
+    }
     click("btnTeacher", function () { qs("teacherModal").classList.remove("hidden"); });
     click("closeModal", function () { qs("teacherModal").classList.add("hidden"); });
-    click("btnLogout", function () { sessionStorage.removeItem("math_teacher"); state.teacher = false; paint(); });
+    click("btnLogout", function () {
+      state.teacher = false;
+      if (fbAuth) fbAuth.signOut();
+      paint();
+    });
     click("doLogin", function () {
-      var code = qs("teacherCode").value.trim();
+      var email = (qs("teacherEmail") && qs("teacherEmail").value || "").trim();
+      var pass = (qs("teacherCode") && qs("teacherCode").value || "").trim();
       var msg = qs("loginMsg");
       function fail(t) { msg.className = "msg err"; msg.textContent = t; }
-      if (!code) { fail("أدخل الرقم السري"); return; }
-      if (fbDb) {
-        msg.className = "msg"; msg.textContent = "جاري التحقق من Firebase...";
-        fbDb.collection("settings").doc("teacher").get().then(function (snap) {
-          var remote = snap.exists ? String(snap.data().code || snap.data().secret || "").trim() : "";
-          if (remote && code === remote) teacherOk();
-          else if (!remote && code === (window.FALLBACK_TEACHER_CODE || "123456")) teacherOk();
-          else fail("رقم خاطئ");
-        }).catch(function () {
-          if (code === (window.FALLBACK_TEACHER_CODE || "123456")) teacherOk();
-          else fail("تعذر الاتصال بـ Firebase");
-        });
-        return;
-      }
-      if (code === (window.FALLBACK_TEACHER_CODE || "123456")) teacherOk();
-      else fail("رقم خاطئ");
+      if (!email || !pass) { fail("أدخل البريد وكلمة المرور"); return; }
+      if (!fbAuth) { fail("Firebase غير جاهز"); return; }
+      msg.className = "msg"; msg.textContent = "جاري التحقق...";
+      fbAuth.signInWithEmailAndPassword(email, pass).then(function () {
+        teacherOk();
+      }).catch(function (err) {
+        fail(authError(err && err.code));
+      });
     });
     click("btnStudentEnter", function () {
       var raw = (qs("studentCode").value || "").trim(); var msg = qs("studentMsg"); var found = null;
