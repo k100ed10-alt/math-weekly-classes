@@ -26,17 +26,15 @@
     });
     if (!found) { host.innerHTML = ""; host.classList.add("hidden"); return; }
     host.classList.remove("hidden");
-    var src = "https://www.youtube-nocookie.com/embed/" + found.id + "?rel=0";
+    var src = "https://www.youtube.com/embed/" + found.id + "?rel=0";
     host.innerHTML =
       '<div class="yt-head"><strong>البث داخل الموقع</strong><button type="button" class="btn btn-gold" id="ytFull">تكبير الشاشة</button></div>' +
       '<div class="yt-wrap" id="ytBox">' +
-      '<iframe id="ytFrame" src="' + src + '" title="live" referrerpolicy="no-referrer" ' +
-      'sandbox="allow-scripts allow-same-origin allow-presentation" ' +
-      'allow="fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe>' +
+      '<iframe id="ytFrame" src="' + src + '" title="live" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
       '<div class="yt-shield yt-shield-top"></div>' +
       '<div class="yt-shield yt-shield-br"></div>' +
       '</div>' +
-      '<p class="meta">المشاهدة داخل الصفحة فقط. الرابط غير ظاهر.</p>';
+      '<p class="meta">المشاهدة داخل الصفحة. الرابط غير ظاهر للطالب.</p>';
     host.oncontextmenu = function (e) { e.preventDefault(); return false; };
     var full = document.getElementById("ytFull");
     var boxEl = document.getElementById("ytBox");
@@ -46,10 +44,6 @@
         else if (boxEl.webkitRequestFullscreen) boxEl.webkitRequestFullscreen();
       };
     }
-    document.addEventListener("click", function (e) {
-      var a = e.target && e.target.closest ? e.target.closest('a[href*="youtu"]') : null;
-      if (a) { e.preventDefault(); e.stopPropagation(); }
-    }, true);
   }
   var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
   var CODES = {5:"حصة5",6:"حصة6",7:"حصة7",8:"حصة8",9:"حصة9",10:"حصة10",11:"حصة11",12:"حصة12"};
