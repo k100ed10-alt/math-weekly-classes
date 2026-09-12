@@ -1,5 +1,6 @@
 (function () {
   function qs(id) { return document.getElementById(id); }
+  var ytPlayer = null;
   function youtubeId(url) {
     var s = String(url || "");
     var m = s.match(/(?:youtu\.be\/|v=|\/live\/|embed\/)([A-Za-z0-9_-]{11})/);
@@ -7,6 +8,17 @@
   }
   function classVideo(c) {
     return youtubeId(c.place) || youtubeId(c.notes) || youtubeId(c.yt) || null;
+  }
+  function loadYtApi(cb) {
+    if (window.YT && window.YT.Player) { cb(); return; }
+    var prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function () { if (prev) prev(); cb(); };
+    if (!document.getElementById("ytApiScript")) {
+      var s = document.createElement("script");
+      s.id = "ytApiScript";
+      s.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(s);
+    }
   }
   function renderPlayer(items) {
     var host = document.getElementById("livePlayer");
@@ -26,24 +38,68 @@
     });
     if (!found) { host.innerHTML = ""; host.classList.add("hidden"); return; }
     host.classList.remove("hidden");
-    var src = "https://www.youtube.com/embed/" + found.id + "?rel=0";
     host.innerHTML =
-      '<div class="yt-head"><strong>البث داخل الموقع</strong><button type="button" class="btn btn-gold" id="ytFull">تكبير الشاشة</button></div>' +
+      '<div class="yt-head"><strong>البث داخل الموقع</strong>' +
+      '<button type="button" class="btn btn-gold" id="ytPlay">تشغيل</button>' +
+      '<button type="button" class="btn btn-gold" id="ytFull">تكبير الشاشة</button></div>' +
       '<div class="yt-wrap" id="ytBox">' +
-      '<iframe id="ytFrame" src="' + src + '" title="live" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>' +
-      '<div class="yt-shield yt-shield-top"></div>' +
-      '<div class="yt-shield yt-shield-br"></div>' +
+      '<div id="ytApi"></div>' +
+      '<button type="button" class="yt-cover" id="ytCover">تشغيل البث هنا</button>' +
       '</div>' +
-      '<p class="meta">المشاهدة داخل الصفحة. الرابط غير ظاهر للطالب.</p>';
+      '<p class="meta">اضغط تشغيل هنا. لا يوجد زر يوتيوب ظاهر.</p>';
     host.oncontextmenu = function (e) { e.preventDefault(); return false; };
-    var full = document.getElementById("ytFull");
-    var boxEl = document.getElementById("ytBox");
-    if (full && boxEl) {
-      full.onclick = function () {
-        if (boxEl.requestFullscreen) boxEl.requestFullscreen();
-        else if (boxEl.webkitRequestFullscreen) boxEl.webkitRequestFullscreen();
+    function bindControls() {
+      var playBtn = document.getElementById("ytPlay");
+      var cover = document.getElementById("ytCover");
+      function toggle() {
+        if (!ytPlayer || !ytPlayer.getPlayerState) return;
+        var st = ytPlayer.getPlayerState();
+        if (st === 1) ytPlayer.pauseVideo();
+        else ytPlayer.playVideo();
+      }
+      if (playBtn) playBtn.onclick = toggle;
+      if (cover) cover.onclick = function () {
+        toggle();
+        cover.classList.add("hidden");
       };
+      var full = document.getElementById("ytFull");
+      var boxEl = document.getElementById("ytBox");
+      if (full && boxEl) {
+        full.onclick = function () {
+          if (boxEl.requestFullscreen) boxEl.requestFullscreen();
+          else if (boxEl.webkitRequestFullscreen) boxEl.webkitRequestFullscreen();
+        };
+      }
     }
+    bindControls();
+    loadYtApi(function () {
+      if (!document.getElementById("ytApi")) return;
+      ytPlayer = new window.YT.Player("ytApi", {
+        videoId: found.id,
+        playerVars: {
+          rel: 0,
+          playsinline: 1,
+          modestbranding: 1,
+          fs: 0,
+          controls: 0,
+          disablekb: 1,
+          iv_load_policy: 3,
+          origin: location.origin
+        },
+        events: {
+          onStateChange: function (e) {
+            var cover = document.getElementById("ytCover");
+            var playBtn = document.getElementById("ytPlay");
+            if (e.data === 1) {
+              if (cover) cover.classList.add("hidden");
+              if (playBtn) playBtn.textContent = "إيقاف";
+            } else {
+              if (playBtn) playBtn.textContent = "تشغيل";
+            }
+          }
+        }
+      });
+    });
   }
   var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
   var CODES = {5:"حصة5",6:"حصة6",7:"حصة7",8:"حصة8",9:"حصة9",10:"حصة10",11:"حصة11",12:"حصة12"};
