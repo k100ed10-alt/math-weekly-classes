@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>حصص الرياضيات</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=13" />
+  <link rel="stylesheet" href="css/style.css?v=14" />
   <style>
-    .yt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+    .yt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .yt-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:16px;background:#000}
-    .yt-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-    .yt-shield{position:absolute;z-index:3;background:transparent}
-    .yt-shield-top{top:0;left:0;right:0;height:58px}
-    .yt-shield-br{bottom:0;left:0;width:120px;height:48px}
+    .yt-wrap iframe,.yt-wrap #ytApi{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+    .yt-cover{position:absolute;inset:0;z-index:5;border:0;background:rgba(7,20,40,.55);color:#fff;font:700 1.1rem Cairo,Tahoma,sans-serif;cursor:pointer}
+    .yt-cover.hidden{display:none}
   </style>
 </head>
 <body>
@@ -42,6 +41,6 @@
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button><button class="btn btn-gold" id="saveClass" type="button">حفظ</button></div>
   </div></div>
   <div class="modal-back hidden" id="teacherModal"><div class="modal"><h3>دخول المعلم</h3><p>123456</p><label for="teacherCode">الرقم</label><input id="teacherCode" type="password" /><div class="msg" id="loginMsg"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeModal" type="button">إلغاء</button><button class="btn btn-gold" id="doLogin" type="button">دخول</button></div></div></div>
-  <script src="js/content.js?v=13"></script>
-  <script src="js/app.js?v=13"></script>
+  <script src="js/content.js?v=14"></script>
+  <script src="js/app.js?v=14"></script>
 </body></html>
