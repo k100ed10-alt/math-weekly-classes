@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>منصة حَصاد التعليمية</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=16" />
+  <link rel="stylesheet" href="css/style.css?v=17" />
   <style>
     .yt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .yt-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:16px;background:#000}
@@ -43,7 +43,10 @@
     <div class="msg" id="classMsg"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button><button class="btn btn-gold" id="saveClass" type="button">حفظ</button></div>
   </div></div>
-  <div class="modal-back hidden" id="teacherModal"><div class="modal"><h3>دخول المعلم</h3><p>123456</p><label for="teacherCode">الرقم</label><input id="teacherCode" type="password" /><div class="msg" id="loginMsg"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeModal" type="button">إلغاء</button><button class="btn btn-gold" id="doLogin" type="button">دخول</button></div></div></div>
-  <script src="js/content.js?v=16"></script>
-  <script src="js/app.js?v=16"></script>
+  <div class="modal-back hidden" id="teacherModal"><div class="modal"><h3>دخول المعلم</h3><p>الرقم السري محفوظ في Firebase</p><label for="teacherCode">الرقم السري</label><input id="teacherCode" type="password" /><div class="msg" id="loginMsg"></div><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeModal" type="button">إلغاء</button><button class="btn btn-gold" id="doLogin" type="button">دخول</button></div></div></div>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js?v=17"></script>
+  <script src="js/content.js?v=17"></script>
+  <script src="js/app.js?v=17"></script>
 </body></html>
