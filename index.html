@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>منصة حَصاد التعليمية</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css?v=21" />
+  <link rel="stylesheet" href="css/style.css?v=22" />
   <style>
     .yt-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
     .yt-wrap{position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:16px;background:#000}
@@ -15,6 +15,7 @@
     .yt-wrap.is-full{position:fixed;inset:0;z-index:90;padding-bottom:0;height:100%;width:100%;border-radius:0}
     .yt-exit{position:absolute;top:12px;left:12px;z-index:8;border:0;border-radius:999px;padding:8px 14px;font:700 .9rem Cairo,Tahoma,sans-serif;background:#d4af37;color:#071428}
     body.yt-lock{overflow:hidden}
+    #btnAddClass{width:100%;margin-bottom:16px;padding:14px 16px;font-size:1.05rem}
   </style>
 </head>
 <body>
@@ -26,10 +27,16 @@
       <div class="hero-cta hidden" id="afterLoginCta"><button class="btn btn-outline" id="btnStudentOut" type="button">خروج الطالب</button></div>
     </div></section>
     <section class="section locked-area hidden" id="gradesSection"><div class="container"><div class="section-head"><div><h3>اختر الصف</h3></div></div><div class="grades-grid" id="gradesGrid"></div></div></section>
-    <section class="section locked-area hidden" id="scheduleSection" style="padding-top:0"><div class="container"><div class="section-head"><div><h3>الحصة الأسبوعية</h3></div><button class="btn btn-gold hidden" id="btnAddClass" type="button">+ إضافة حصة</button></div>
-      <div id="teacherScheduleHint" class="teacher-panel hidden"><h3>رموز الطلبة</h3><div id="codesEditor"></div><div class="msg" id="codesMsg"></div><button class="btn btn-teal" id="saveCodes" type="button">حفظ الرموز</button></div>
+    <section class="section locked-area hidden" id="scheduleSection" style="padding-top:0"><div class="container"><div class="section-head"><div><h3>الحصة الأسبوعية</h3></div></div>
+      <div id="teacherScheduleHint" class="teacher-panel hidden">
+        <button class="btn btn-gold hidden" id="btnAddClass" type="button">+ إضافة حصة أسبوعية وحفظها</button>
+        <h3>رموز الطلبة</h3>
+        <div id="codesEditor"></div>
+        <div class="msg" id="codesMsg"></div>
+        <button class="btn btn-teal" id="saveCodes" type="button">حفظ الرموز</button>
+      </div>
       <div class="week-list" id="weekGrid"></div>
-      <p class="empty-note" id="weekEmpty">لا توجد حصة.</p>
+      <p class="empty-note" id="weekEmpty">لا توجد حصة. اضغط إضافة حصة أسبوعية.</p>
     </div></section>
   </main>
   <footer><div class="container"><strong>منصة حَصاد التعليمية</strong></div></footer>
@@ -41,7 +48,7 @@
     <label for="classPlace" style="margin-top:10px">رابط بث اليوتيوب</label><input id="classPlace" placeholder="https://youtu.be/..." />
     <label for="classNotes" style="margin-top:10px">ملاحظة</label><textarea id="classNotes" rows="2"></textarea>
     <div class="msg" id="classMsg"></div>
-    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button><button class="btn btn-gold" id="saveClass" type="button">حفظ</button></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn btn-ghost" id="closeClassModal" type="button">إلغاء</button><button class="btn btn-gold" id="saveClass" type="button">حفظ الحصة</button></div>
   </div></div>
   <div class="modal-back hidden" id="teacherModal"><div class="modal"><h3>دخول المعلم</h3><p>ادخل بالبريد الإلكتروني وكلمة المرور من Firebase Authentication</p>
     <label for="teacherEmail">البريد الإلكتروني</label>
@@ -54,7 +61,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script src="js/firebase-config.js?v=21"></script>
-  <script src="js/content.js?v=21"></script>
-  <script src="js/app.js?v=21"></script>
+  <script src="js/firebase-config.js?v=22"></script>
+  <script src="js/content.js?v=22"></script>
+  <script src="js/app.js?v=22"></script>
 </body></html>
