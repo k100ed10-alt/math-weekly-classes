@@ -4,6 +4,7 @@
   var fbReady = false;
   var fbDb = null;
   var fbAuth = null;
+  var GRADES = ["5","6","7","8","9","10","11","12"];
   function initFb() {
     try {
       var cfg = window.FIREBASE_CONFIG;
@@ -14,6 +15,37 @@
       if (firebase.auth) fbAuth = firebase.auth();
       fbReady = true;
     } catch (e) { fbReady = false; }
+  }
+  function norm(s) {
+    var map = {"٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9"};
+    return String(s || "").replace(/[٠-٩]/g, function (d) { return map[d] || d; }).replace(/\s+/g, "").toLowerCase();
+  }
+  function applyRemoteCodes(data) {
+    if (!data) return;
+    GRADES.forEach(function (g) {
+      var v = data[g] || data[Number(g)] || data["g" + g] || data["grade" + g];
+      if (v) CODES[g] = String(v).trim();
+    });
+    persistLocal();
+  }
+  function codesPayload() {
+    var out = {};
+    GRADES.forEach(function (g) { out[g] = String(CODES[g] || "").trim(); });
+    return out;
+  }
+  function findGrade(raw) {
+    var n = norm(raw);
+    if (!n) return null;
+    var found = null;
+    GRADES.forEach(function (g) { if (norm(CODES[g]) === n) found = g; });
+    return found;
+  }
+  function refreshCodes(cb) {
+    if (!fbDb) { if (cb) cb(); return; }
+    fbDb.collection("settings").doc("studentCodes").get().then(function (snap) {
+      if (snap.exists) applyRemoteCodes(snap.data());
+      if (cb) cb();
+    }).catch(function () { if (cb) cb(); });
   }
   function persistLocal() {
     localStorage.setItem("math_classes", JSON.stringify(state.classes));
@@ -52,7 +84,7 @@
   function saveCodesDoc() {
     persistLocal();
     if (!fbDb) return Promise.reject(new Error("no-db"));
-    return fbDb.collection("settings").doc("studentCodes").set(CODES, { merge: true });
+    return fbDb.collection("settings").doc("studentCodes").set(codesPayload());
   }
   function listenClasses() {
     var col = classCol();
@@ -73,9 +105,7 @@
     if (!fbDb) return;
     fbDb.collection("settings").doc("studentCodes").onSnapshot(function (snap) {
       if (!snap.exists) return;
-      var data = snap.data() || {};
-      Object.keys(data).forEach(function (g) { CODES[g] = String(data[g] || ""); });
-      persistLocal();
+      applyRemoteCodes(snap.data());
       renderCodes();
     }, function () {});
   }
@@ -195,10 +225,10 @@
     });
   }
   var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-  var CODES = {5:"حصة5",6:"حصة6",7:"حصة7",8:"حصة8",9:"حصة9",10:"حصة10",11:"حصة11",12:"حصة12"};
+  var CODES = {5:"حصة5","5":"حصة5",6:"حصة6","6":"حصة6",7:"حصة7","7":"حصة7",8:"حصة8","8":"حصة8",9:"حصة9","9":"حصة9",10:"حصة10","10":"حصة10",11:"حصة11","11":"حصة11",12:"حصة12","12":"حصة12"};
   try {
     var savedCodes = JSON.parse(localStorage.getItem("math_codes") || "{}");
-    Object.keys(savedCodes).forEach(function (g) { if (savedCodes[g]) CODES[g] = savedCodes[g]; });
+    applyRemoteCodes(savedCodes);
   } catch (e) {}
   var state = {teacher:false,grade:sessionStorage.getItem("math_student_grade")||"",classes:JSON.parse(localStorage.getItem("math_classes")||"[]")};
   function setHidden(el, hide) { if (el) el.classList.toggle("hidden", !!hide); }
@@ -264,16 +294,16 @@
         var url = prompt("الصق رابط بث اليوتيوب");
         if (!url) return;
         if (!youtubeId(url)) { alert("الرابط ليس رابط يوتيوب صحيح"); return; }
-        var found = null;
-        state.classes.forEach(function (c) { if (c.id === id) { c.place = url.trim(); found = c; } });
-        if (found) saveClassDoc(found).then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); });
+        var foundItem = null;
+        state.classes.forEach(function (c) { if (c.id === id) { c.place = url.trim(); foundItem = c; } });
+        if (foundItem) saveClassDoc(foundItem).then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); });
       };
     });
   }
   function renderCodes() {
     var host = qs("codesEditor"); if (!host || !window.PORTAL_CONTENT) return; var html = "";
     Object.keys(window.PORTAL_CONTENT).forEach(function (g) {
-      html += '<div class="code-row"><label>' + window.PORTAL_CONTENT[g].title + '</label><input data-grade="' + g + '" class="code-input" value="' + (CODES[g] || "") + '" /></div>';
+      html += '<div class="code-row"><label>' + window.PORTAL_CONTENT[g].title + '</label><input data-grade="' + g + '" class="code-input" value="' + (CODES[g] || CODES[String(g)] || "") + '" /></div>';
     });
     host.innerHTML = html;
   }
@@ -287,11 +317,18 @@
     qs("teacherModal").classList.add("hidden");
     paint();
   }
+  function enterStudent(grade) {
+    state.grade = grade;
+    sessionStorage.setItem("math_student_grade", grade);
+    paint();
+    qs("scheduleSection").scrollIntoView({ behavior: "smooth" });
+  }
   function start() {
     initFb();
     fillSelect();
     listenClasses();
     listenCodes();
+    refreshCodes();
     if (fbAuth) {
       fbAuth.onAuthStateChanged(function (user) {
         state.teacher = !!user;
@@ -320,11 +357,16 @@
       });
     });
     click("btnStudentEnter", function () {
-      var raw = (qs("studentCode").value || "").trim(); var msg = qs("studentMsg"); var found = null;
-      Object.keys(CODES).forEach(function (g) { if (String(CODES[g]) === raw) found = g; });
-      if (!found) { msg.className = "msg err"; msg.textContent = "الرمز غير صحيح"; return; }
-      state.grade = found; sessionStorage.setItem("math_student_grade", found); paint();
-      qs("scheduleSection").scrollIntoView({ behavior: "smooth" });
+      var raw = (qs("studentCode").value || "").trim();
+      var msg = qs("studentMsg");
+      if (!raw) { msg.className = "msg err"; msg.textContent = "أدخل الرمز"; return; }
+      msg.className = "msg"; msg.textContent = "جاري التحقق من الرمز...";
+      refreshCodes(function () {
+        var found = findGrade(raw);
+        if (!found) { msg.className = "msg err"; msg.textContent = "الرمز غير صحيح"; return; }
+        msg.textContent = "";
+        enterStudent(found);
+      });
     });
     click("btnStudentOut", function () { sessionStorage.removeItem("math_student_grade"); state.grade = ""; paint(); });
     click("btnAddClass", function () { qs("classModal").classList.remove("hidden"); });
@@ -356,7 +398,11 @@
       });
     });
     click("saveCodes", function () {
-      document.querySelectorAll(".code-input").forEach(function (inp) { CODES[inp.getAttribute("data-grade")] = inp.value.trim(); });
+      document.querySelectorAll(".code-input").forEach(function (inp) {
+        var g = String(inp.getAttribute("data-grade"));
+        CODES[g] = inp.value.trim();
+        CODES[Number(g)] = inp.value.trim();
+      });
       var msg = qs("codesMsg");
       msg.className = "msg"; msg.textContent = "جاري الحفظ في Firebase...";
       saveCodesDoc().then(function () {
