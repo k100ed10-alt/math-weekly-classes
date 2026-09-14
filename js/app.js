@@ -53,53 +53,30 @@
   }
   function fbErr(err) {
     var c = err && err.code ? String(err.code) : "";
-    if (c.indexOf("permission") !== -1) return "قواعد Firebase تمنع الحفظ. انشر القواعد المطلوبة";
+    if (c.indexOf("permission") !== -1) return "قواعد Firebase تمنع الحفظ. انشر القواعد ثم أعد الحفظ";
     if (c.indexOf("unavailable") !== -1) return "تعذر الاتصال بـ Firebase";
-    return "فشل الحفظ: " + (c || "خطأ غير معروف");
+    return "فشل الحفظ: " + (c || (err && err.message) || "خطأ غير معروف");
   }
-  function classCol() {
-    return fbDb ? fbDb.collection("weeklyClasses") : null;
-  }
-  function saveClassDoc(item) {
+  function saveAllClasses() {
     persistLocal();
-    var col = classCol();
-    if (!col) return Promise.reject(new Error("no-db"));
-    var data = {
-      grade: String(item.grade),
-      day: Number(item.day),
-      start: item.start || "",
-      end: item.end || "",
-      topic: item.topic || "",
-      place: item.place || "",
-      notes: item.notes || ""
-    };
-    return col.doc(String(item.id)).set(data, { merge: true });
+    if (!fbDb) return Promise.reject(new Error("no-db"));
+    return fbDb.collection("settings").doc("weeklyAll").set({ items: state.classes, updatedAt: Date.now() });
   }
-  function deleteClassDoc(id) {
-    persistLocal();
-    var col = classCol();
-    if (!col) return Promise.resolve();
-    return col.doc(String(id)).delete();
+  function listenClasses() {
+    if (!fbDb) return;
+    fbDb.collection("settings").doc("weeklyAll").onSnapshot(function (snap) {
+      if (!snap.exists) return;
+      var items = (snap.data() || {}).items;
+      if (!items || !items.length) return;
+      state.classes = items;
+      persistLocal();
+      paint();
+    }, function () {});
   }
   function saveCodesDoc() {
     persistLocal();
     if (!fbDb) return Promise.reject(new Error("no-db"));
     return fbDb.collection("settings").doc("studentCodes").set(codesPayload());
-  }
-  function listenClasses() {
-    var col = classCol();
-    if (!col) return;
-    col.onSnapshot(function (snap) {
-      var list = [];
-      snap.forEach(function (doc) {
-        var d = doc.data() || {};
-        d.id = doc.id;
-        list.push(d);
-      });
-      state.classes = list;
-      persistLocal();
-      paint();
-    }, function () {});
   }
   function listenCodes() {
     if (!fbDb) return;
@@ -225,7 +202,7 @@
     });
   }
   var DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-  var CODES = {5:"حصة5","5":"حصة5",6:"حصة6","6":"حصة6",7:"حصة7","7":"حصة7",8:"حصة8","8":"حصة8",9:"حصة9","9":"حصة9",10:"حصة10","10":"حصة10",11:"حصة11","11":"حصة11",12:"حصة12","12":"حصة12"};
+  var CODES = {"5":"حصة5","6":"حصة6","7":"حصة7","8":"حصة8","9":"حصة9","10":"حصة10","11":"حصة11","12":"حصة12"};
   try {
     var savedCodes = JSON.parse(localStorage.getItem("math_codes") || "{}");
     applyRemoteCodes(savedCodes);
@@ -285,7 +262,7 @@
         if (!confirm("حذف هذه الحصة؟")) return;
         var id = btn.getAttribute("data-del");
         state.classes = state.classes.filter(function (c) { return c.id !== id; });
-        deleteClassDoc(id).then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); });
+        saveAllClasses().then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); renderWeek(); });
       };
     });
     grid.querySelectorAll("[data-yt]").forEach(function (btn) {
@@ -294,16 +271,15 @@
         var url = prompt("الصق رابط بث اليوتيوب");
         if (!url) return;
         if (!youtubeId(url)) { alert("الرابط ليس رابط يوتيوب صحيح"); return; }
-        var foundItem = null;
-        state.classes.forEach(function (c) { if (c.id === id) { c.place = url.trim(); foundItem = c; } });
-        if (foundItem) saveClassDoc(foundItem).then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); });
+        state.classes.forEach(function (c) { if (c.id === id) c.place = url.trim(); });
+        saveAllClasses().then(function () { renderWeek(); }).catch(function (err) { alert(fbErr(err)); renderWeek(); });
       };
     });
   }
   function renderCodes() {
     var host = qs("codesEditor"); if (!host || !window.PORTAL_CONTENT) return; var html = "";
     Object.keys(window.PORTAL_CONTENT).forEach(function (g) {
-      html += '<div class="code-row"><label>' + window.PORTAL_CONTENT[g].title + '</label><input data-grade="' + g + '" class="code-input" value="' + (CODES[g] || CODES[String(g)] || "") + '" /></div>';
+      html += '<div class="code-row"><label>' + window.PORTAL_CONTENT[g].title + '</label><input data-grade="' + g + '" class="code-input" value="' + (CODES[g] || "") + '" /></div>';
     });
     host.innerHTML = html;
   }
@@ -388,11 +364,13 @@
       msg.className = "msg"; msg.textContent = "جاري الحفظ في Firebase...";
       state.classes = state.classes.filter(function (c) { return String(c.grade) !== String(item.grade); });
       state.classes.push(item);
-      saveClassDoc(item).then(function () {
+      persistLocal();
+      saveAllClasses().then(function () {
         qs("classModal").classList.add("hidden");
         msg.textContent = "";
         paint();
       }).catch(function (err) {
+        paint();
         msg.className = "msg err";
         msg.textContent = fbErr(err);
       });
@@ -401,7 +379,6 @@
       document.querySelectorAll(".code-input").forEach(function (inp) {
         var g = String(inp.getAttribute("data-grade"));
         CODES[g] = inp.value.trim();
-        CODES[Number(g)] = inp.value.trim();
       });
       var msg = qs("codesMsg");
       msg.className = "msg"; msg.textContent = "جاري الحفظ في Firebase...";
